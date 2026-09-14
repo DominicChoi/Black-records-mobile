@@ -13,41 +13,165 @@ var walk_phase: float = 0.0
 var talk_cooldown: float = 0.0
 var facing: Vector2 = Vector2.DOWN
 var is_moving: bool = false
+var wait_timer: float = 0.0
+var story_quest: String = "ARRIVAL"
+var story_flags: Dictionary = {}
+var current_time: float = 17.5
+var schedule_target: Vector2 = Vector2.ZERO
+var schedule_label: String = ""
 
 func _ready() -> void:
     add_to_group("npc")
+    schedule_target = global_position
+
+func set_story_context(quest: String, flags: Dictionary, time_of_day: float) -> void:
+    story_quest = quest
+    story_flags = flags
+    current_time = time_of_day
+    _update_schedule_target()
 
 func _physics_process(delta: float) -> void:
     idle_phase += delta
     talk_cooldown = maxf(0.0, talk_cooldown - delta)
+    wait_timer = maxf(0.0, wait_timer - delta)
     velocity = Vector2.ZERO
     is_moving = false
-    if routine_points.size() > 0:
-        var target: Vector2 = routine_points[routine_index]
-        var d: float = global_position.distance_to(target)
-        if d < 8.0:
-            routine_index = (routine_index + 1) % routine_points.size()
-        else:
-            facing = global_position.direction_to(target)
-            velocity = facing * move_speed
-            is_moving = true
-            walk_phase += delta * 7.0
-            move_and_slide()
+
+    _update_schedule_target()
+    var target: Vector2 = schedule_target
+    var d: float = global_position.distance_to(target)
+
+    if d < 10.0:
+        if wait_timer <= 0.0:
+            wait_timer = _wait_duration_for_schedule()
+        _idle_facing_for_schedule()
+    elif wait_timer <= 0.0:
+        facing = global_position.direction_to(target)
+        velocity = facing * _current_move_speed()
+        is_moving = true
+        walk_phase += delta * 7.2
+        move_and_slide()
+
     queue_redraw()
 
-func get_dialogue(time_of_day: float) -> String:
-    talk_cooldown = 0.8
+func _update_schedule_target() -> void:
     if npc_id == "mayor":
-        if time_of_day >= 21.0:
-            return "한상철: 이 시간엔 돌아다니지 않는 게 좋습니다. 북쪽 길은 특히요."
-        return "한상철: 외지인이 오래 머물 곳은 아닙니다. 필요한 일이 끝나면 내려가십시오."
+        _schedule_mayor()
+    elif npc_id == "reporter":
+        _schedule_reporter()
+    elif npc_id == "keeper":
+        _schedule_keeper()
+    elif routine_points.size() > 0:
+        schedule_target = routine_points[routine_index % routine_points.size()]
+        schedule_label = "순찰"
+
+func _schedule_mayor() -> void:
+    if current_time >= 21.7 or current_time < 1.0:
+        if bool(story_flags.get("mayor_follow_unlocked", false)):
+            schedule_target = Vector2(1175, 255)
+            schedule_label = "북쪽 길 이동"
+        else:
+            schedule_target = Vector2(1010, 430)
+            schedule_label = "이장집 앞"
+    elif current_time >= 19.0:
+        schedule_target = Vector2(940, 405)
+        schedule_label = "마을회관 주변"
+    elif current_time >= 12.0:
+        schedule_target = Vector2(710, 350)
+        schedule_label = "마을 순찰"
+    else:
+        schedule_target = Vector2(1010, 430)
+        schedule_label = "이장집 앞"
+
+func _schedule_reporter() -> void:
+    if current_time >= 21.0 or current_time < 1.0:
+        schedule_target = Vector2(625, 410)
+        schedule_label = "북쪽 길 감시"
+    elif current_time >= 18.0:
+        schedule_target = Vector2(420, 390)
+        schedule_label = "경찰지소 주변"
+    elif current_time >= 12.0:
+        schedule_target = Vector2(835, 430)
+        schedule_label = "주민 취재"
+    else:
+        schedule_target = Vector2(700, 470)
+        schedule_label = "기록 정리"
+
+func _schedule_keeper() -> void:
+    if current_time >= 20.0 or current_time < 6.0:
+        schedule_target = Vector2(1130, 315)
+        schedule_label = "폐광 관리도로 확인"
+    elif current_time >= 15.0:
+        schedule_target = Vector2(1190, 500)
+        schedule_label = "장비 창고 점검"
+    else:
+        schedule_target = Vector2(1090, 545)
+        schedule_label = "관리소 대기"
+
+func _wait_duration_for_schedule() -> float:
+    if npc_id == "mayor" and schedule_label == "북쪽 길 이동":
+        return 0.4
     if npc_id == "reporter":
-        if time_of_day >= 20.0:
-            return "정우진: 이장은 밤 10시 전후로 혼자 북쪽 길을 씁니다. 너무 가까이 붙진 마세요."
-        return "정우진: 공식 기록과 주민들 기억이 서로 안 맞습니다. 서기태 이름부터 확인해 보죠."
+        return 2.2
     if npc_id == "keeper":
+        return 3.0
+    return 1.4
+
+func _current_move_speed() -> float:
+    if npc_id == "mayor" and schedule_label == "북쪽 길 이동":
+        return 58.0
+    if npc_id == "keeper":
+        return 34.0
+    return move_speed
+
+func _idle_facing_for_schedule() -> void:
+    if npc_id == "mayor" and schedule_label == "북쪽 길 이동":
+        facing = Vector2.UP
+    elif npc_id == "reporter" and schedule_label == "북쪽 길 감시":
+        facing = Vector2.UP
+    elif npc_id == "keeper" and schedule_label == "폐광 관리도로 확인":
+        facing = Vector2.LEFT
+
+func get_dialogue(time_of_day: float, quest: String = "", flags: Dictionary = {}) -> String:
+    talk_cooldown = 0.8
+    var q: String = quest if not quest.is_empty() else story_quest
+    var f: Dictionary = flags if not flags.is_empty() else story_flags
+
+    if npc_id == "mayor":
+        if q == "FOLLOW_MAYOR":
+            return "한상철: …누가 따라오는 건가? 바람 소리겠지."
+        if time_of_day >= 21.7 and bool(f.get("mayor_follow_unlocked", false)):
+            return "한상철: 오늘은 늦었습니다. 북쪽 길에는 절대 가지 마십시오."
+        if bool(f.get("met_reporter", false)):
+            return "한상철: 정우진 기자 말은 믿지 마십시오. 오래된 사고를 괜히 들쑤시고 있습니다."
+        if time_of_day >= 19.0:
+            return "한상철: 해가 지면 마을 밖으로 나가지 마십시오. 안개가 갑자기 짙어집니다."
+        return "한상철: 외지인이 오래 머물 곳은 아닙니다. 필요한 일이 끝나면 내려가십시오."
+
+    if npc_id == "reporter":
+        if q == "FOLLOW_MAYOR":
+            return "정우진: 지금입니다. 한상철과 거리를 두고 따라가세요. 시야에서 놓치지만 마십시오."
+        if q == "NIGHT_WATCH" and time_of_day >= 21.0:
+            return "정우진: 이장은 곧 북쪽 길로 움직일 겁니다. 가로등이 끝나는 지점부터는 몸을 숨기세요."
+        if bool(f.get("met_keeper", false)):
+            return "정우진: 장도식이 폐광 관리도로에 발자국이 남는다고 했죠? 이장 동선과 겹치는지 봐야 합니다."
+        if time_of_day >= 18.0:
+            return "정우진: 공식 기록에는 7명이라고 적혀 있습니다. 그런데 당시 사진에는 여덟 번째 사람이 있어요."
+        return "정우진: 공식 기록과 주민들 기억이 서로 안 맞습니다. 서기태 이름부터 확인해 보죠."
+
+    if npc_id == "keeper":
+        if q == "FOLLOW_MAYOR":
+            return "장도식: 북쪽 샛길로 갔다면 폐광 쪽이야. 오래된 철제 표지판을 지나면 발소리를 죽여."
+        if time_of_day >= 20.0:
+            return "장도식: 밤마다 관리도로 자물쇠 위치가 조금씩 달라져. 누군가 건드린다는 뜻이지."
+        if bool(f.get("met_mayor", false)):
+            return "장도식: 한상철은 폐광이 완전히 막혔다고 하지? 그건 반만 맞는 말이야. 옛 관리도로가 남아 있어."
         return "장도식: 폐광은 닫혔어. 그래도 옛 관리도로엔 아직 발자국이 남지."
+
     return "%s: 요즘 마을 분위기가 좀 이상하지요." % display_name
+
+func get_schedule_label() -> String:
+    return schedule_label
 
 func _draw() -> void:
     var bob: float = absf(sin(walk_phase)) * 1.8 if is_moving else sin(idle_phase * 1.9) * 0.45

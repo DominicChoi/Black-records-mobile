@@ -5,6 +5,8 @@ extends Node2D
 @onready var dialogue_panel: Panel = $UI/DialoguePanel
 @onready var quest_label: Label = $UI/TopBar/Quest
 @onready var clock_label: Label = $UI/TopBar/Clock
+@onready var area_label: Label = $UI/TopBar/Area
+@onready var action_hint: Label = $UI/ActionHint
 @onready var minimap: Control = $UI/Minimap
 @onready var joystick: Control = $UI/Joystick
 @onready var interaction_button: Button = $UI/InteractButton
@@ -35,10 +37,15 @@ func _process(delta: float) -> void:
     if autosave_accum >= 12.0:
         autosave_accum = 0.0
         state.save_game(player.position)
+    update_npc_story_context()
     update_nearby_npc()
     near_police = player.position.distance_to(Vector2(345.0, 355.0)) < 72.0
     update_ui()
-    minimap.queue_redraw()
+
+func update_npc_story_context() -> void:
+    for n: Node in get_tree().get_nodes_in_group("npc"):
+        if n.has_method("set_story_context"):
+            n.call("set_story_context", str(state.quest), state.flags, float(state.time_of_day))
 
 func update_nearby_npc() -> void:
     nearby_npc = null
@@ -46,12 +53,11 @@ func update_nearby_npc() -> void:
     for n: Node in get_tree().get_nodes_in_group("npc"):
         if not n is CharacterBody2D:
             continue
-        var npc: CharacterBody2D = n as CharacterBody2D
+        var npc := n as CharacterBody2D
         var d: float = player.global_position.distance_to(npc.global_position)
         if d < 74.0 and d < best:
             best = d
             nearby_npc = npc
-    interaction_button.modulate = Color.WHITE if (nearby_npc != null or near_police) else Color(0.55, 0.55, 0.55, 0.7)
 
 func interact() -> void:
     if near_police and nearby_npc == null:
@@ -59,7 +65,7 @@ func interact() -> void:
         get_tree().change_scene_to_file("res://scenes/police_station.tscn")
         return
     if nearby_npc != null:
-        dialogue.text = nearby_npc.get_dialogue(state.time_of_day)
+        dialogue.text = nearby_npc.get_dialogue(float(state.time_of_day), str(state.quest), state.flags)
         dialogue_panel.visible = true
         if nearby_npc.npc_id == "mayor":
             state.flags["met_mayor"] = true
@@ -72,7 +78,7 @@ func interact() -> void:
             state.flags["mayor_follow_unlocked"] = true
         state.save_game(player.position)
     else:
-        dialogue.text = "조사할 대상이 없습니다. 주변의 인물이나 건물 가까이 이동해 보십시오."
+        dialogue.text = "조사할 대상이 없습니다. 미니맵의 표시와 주변 인물 표식을 확인해 보십시오."
         dialogue_panel.visible = true
 
 func update_ui() -> void:
@@ -80,6 +86,7 @@ func update_ui() -> void:
     var m: int = int((state.time_of_day - float(h)) * 60.0)
     var weather_text: String = "안개" if state.weather == "mist" else str(state.weather)
     clock_label.text = "%02d:%02d  ·  %s" % [h, m, weather_text]
+    area_label.text = "은령마을"
 
     var quest_texts: Dictionary = {
         "ARRIVAL": "경찰지소와 마을 주민을 조사하십시오.",
@@ -87,7 +94,28 @@ func update_ui() -> void:
         "FOLLOW_MAYOR": "한상철에게 들키지 않게 북쪽 숲까지 추적하십시오."
     }
     var q: String = str(quest_texts.get(state.quest, "은령마을의 기록을 조사하십시오."))
-    quest_label.text = "CH.1  |  " + q
+    quest_label.text = "CH.1  ◆  " + q
+
+    var focus_id: String = ""
+    if nearby_npc != null:
+        focus_id = str(nearby_npc.npc_id)
+        interaction_button.text = "대화"
+        var schedule_text: String = ""
+        if nearby_npc.has_method("get_schedule_label"):
+            schedule_text = str(nearby_npc.call("get_schedule_label"))
+        action_hint.text = "%s · %s" % [str(nearby_npc.display_name), schedule_text if not schedule_text.is_empty() else str(nearby_npc.role)]
+        interaction_button.disabled = false
+    elif near_police:
+        interaction_button.text = "입장"
+        action_hint.text = "경찰지소"
+        interaction_button.disabled = false
+    else:
+        interaction_button.text = "조사"
+        action_hint.text = "대상 가까이 이동"
+        interaction_button.disabled = true
+
+    interaction_button.modulate = Color.WHITE if not interaction_button.disabled else Color(0.60, 0.62, 0.64, 0.70)
+    minimap.set_context(str(state.quest), focus_id, near_police)
 
     var darkness: float = clampf((float(state.time_of_day) - 18.0) / 5.0, 0.0, 0.56)
     if state.time_of_day < 5.5:
