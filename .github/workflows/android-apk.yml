@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -45,7 +45,6 @@ jobs:
             -dname "CN=Black Records Debug,O=Black Records,C=KR"
 
       - name: Export Godot Android APK
-        id: export
         uses: firebelley/godot-export@v7.0.0
         env:
           GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ runner.temp }}/blackrecords-debug.keystore
@@ -65,19 +64,22 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          APK="$(find . -type f -name '*.apk' -print -quit)"
+          APK="$(find . -type f -name 'BlackRecords-v0.2.2.apk' -print -quit)"
+          if [ -z "$APK" ]; then
+            APK="$(find . -type f -name '*.apk' -print -quit)"
+          fi
           if [ -z "$APK" ]; then
             echo 'APK was not generated.' >&2
             find . -maxdepth 5 -type f | sort
             exit 1
           fi
-          cp "$APK" dist/BlackRecords-v0.2.0-debug.apk
-          ls -lh dist/BlackRecords-v0.2.0-debug.apk
+          cp "$APK" dist/BlackRecords-v0.2.2-debug.apk
+          ls -lh dist/BlackRecords-v0.2.2-debug.apk
 
       - name: Upload APK for phone installation
         uses: actions/upload-artifact@v4
         with:
-          name: BlackRecords-Android-v0.2.0
-          path: dist/BlackRecords-v0.2.0-debug.apk
+          name: BlackRecords-Android-v0.2.2
+          path: dist/BlackRecords-v0.2.2-debug.apk
           if-no-files-found: error
           retention-days: 30
