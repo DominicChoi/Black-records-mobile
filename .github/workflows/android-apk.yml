@@ -32,6 +32,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: ''
 
       - name: Install Godot 4.3 Android toolchain
         shell: bash
@@ -41,7 +43,6 @@ jobs:
             "platform-tools" \
             "build-tools;34.0.0" \
             "platforms;android-34" \
-            "cmdline-tools;latest" \
             "cmake;3.10.2.4988404" \
             "ndk;23.2.8568313"
 
@@ -63,7 +64,6 @@ jobs:
           test -x "${ANDROID_SDK_ROOT}/platform-tools/adb"
           test -d "${ANDROID_SDK_ROOT}/build-tools/34.0.0"
           test -d "${ANDROID_SDK_ROOT}/platforms/android-34"
-          cat "$HOME/.config/godot/editor_settings-4.tres"
 
       - name: Create installable debug keystore
         shell: bash
@@ -99,7 +99,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          APK="$(find . "$HOME/.local/share/godot/builds" -type f -name 'BlackRecords-v0.2.2.apk' -print -quit 2>/dev/null)"
+          APK="$(find . "$HOME/.local/share/godot/builds" -type f -name 'BlackRecords-v0.2.7.apk' -print -quit 2>/dev/null)"
           if [ -z "$APK" ]; then
             APK="$(find . "$HOME/.local/share/godot/builds" -type f -name '*.apk' -print -quit 2>/dev/null)"
           fi
@@ -108,13 +108,12 @@ jobs:
             find . -maxdepth 5 -type f | sort
             exit 1
           fi
-          cp "$APK" dist/BlackRecords-v0.2.2-debug.apk
-          ls -lh dist/BlackRecords-v0.2.2-debug.apk
+          cp "$APK" dist/BlackRecords-v0.2.7-debug.apk
 
       - name: Upload APK for phone installation
         uses: actions/upload-artifact@v4
         with:
-          name: BlackRecords-Android-v0.2.2
-          path: dist/BlackRecords-v0.2.2-debug.apk
+          name: BlackRecords-Android-v0.2.7
+          path: dist/BlackRecords-v0.2.7-debug.apk
           if-no-files-found: error
           retention-days: 30
