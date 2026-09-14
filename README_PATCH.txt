@@ -1,1 +1,2 @@
-Replace export_presets.cfg and .github/workflows/android-apk.yml in the repository.
+Replace .github/workflows/android-apk.yml with the included file.
+Key fix: packages: '' prevents setup-android@v3 from installing obsolete 'tools'.
