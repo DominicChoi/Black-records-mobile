@@ -11,6 +11,8 @@ extends Node2D
 @onready var joystick: Control = $UI/Joystick
 @onready var interaction_button: Button = $UI/InteractButton
 @onready var night_overlay: ColorRect = $UI/NightOverlay
+@onready var world: Node2D = $World
+@onready var weather_fx: Control = $UI/WeatherFX
 
 var state: Node
 var nearby_npc: CharacterBody2D
@@ -27,6 +29,7 @@ func _ready() -> void:
         var p: Dictionary = loaded["player"] as Dictionary
         player.position = Vector2(float(p.get("x", 520.0)), float(p.get("y", 430.0)))
     dialogue_panel.visible = false
+    update_environment(true)
     update_ui()
 
 func _process(delta: float) -> void:
@@ -37,10 +40,42 @@ func _process(delta: float) -> void:
     if autosave_accum >= 12.0:
         autosave_accum = 0.0
         state.save_game(player.position)
+    update_environment(false)
     update_npc_story_context()
     update_nearby_npc()
     near_police = player.position.distance_to(Vector2(345.0, 355.0)) < 72.0
     update_ui()
+
+func update_environment(force_refresh: bool = false) -> void:
+    var next_weather: String = _weather_for_hour(float(state.time_of_day))
+    if force_refresh or next_weather != str(state.weather):
+        state.weather = next_weather
+    if world.has_method("set_environment"):
+        world.call("set_environment", float(state.time_of_day), str(state.weather))
+    if weather_fx.has_method("set_environment"):
+        weather_fx.call("set_environment", float(state.time_of_day), str(state.weather))
+
+func _weather_for_hour(hour: float) -> String:
+    if hour < 5.5:
+        return "mist"
+    if hour < 8.0:
+        return "mist"
+    if hour < 15.5:
+        return "clear"
+    if hour < 19.2:
+        return "overcast"
+    if hour < 22.8:
+        return "drizzle"
+    return "mist"
+
+func _weather_label(code: String) -> String:
+    var labels: Dictionary = {
+        "clear": "맑음",
+        "mist": "안개",
+        "overcast": "흐림",
+        "drizzle": "이슬비"
+    }
+    return str(labels.get(code, code))
 
 func update_npc_story_context() -> void:
     for n: Node in get_tree().get_nodes_in_group("npc"):
@@ -84,7 +119,7 @@ func interact() -> void:
 func update_ui() -> void:
     var h: int = int(state.time_of_day)
     var m: int = int((state.time_of_day - float(h)) * 60.0)
-    var weather_text: String = "안개" if state.weather == "mist" else str(state.weather)
+    var weather_text: String = _weather_label(str(state.weather))
     clock_label.text = "%02d:%02d  ·  %s" % [h, m, weather_text]
     area_label.text = "은령마을"
 
@@ -117,10 +152,26 @@ func update_ui() -> void:
     interaction_button.modulate = Color.WHITE if not interaction_button.disabled else Color(0.60, 0.62, 0.64, 0.70)
     minimap.set_context(str(state.quest), focus_id, near_police)
 
-    var darkness: float = clampf((float(state.time_of_day) - 18.0) / 5.0, 0.0, 0.56)
-    if state.time_of_day < 5.5:
-        darkness = 0.56
-    night_overlay.color = Color(0.03, 0.06, 0.12, darkness)
+    var hour: float = float(state.time_of_day)
+    var darkness: float = 0.0
+    if hour >= 18.0:
+        darkness = clampf((hour - 18.0) / 4.2, 0.0, 0.58)
+    elif hour < 6.5:
+        darkness = 0.58 * (1.0 - clampf((hour - 5.0) / 1.5, 0.0, 1.0))
+
+    var weather_bonus: float = 0.0
+    if str(state.weather) == "overcast":
+        weather_bonus = 0.05
+    elif str(state.weather) == "drizzle":
+        weather_bonus = 0.08
+    elif str(state.weather) == "mist":
+        weather_bonus = 0.025
+
+    var dusk_warmth: float = 0.0
+    if hour >= 17.0 and hour <= 19.4:
+        dusk_warmth = sin(clampf((hour - 17.0) / 2.4, 0.0, 1.0) * PI)
+    var overlay_color := Color(0.035 + 0.08 * dusk_warmth, 0.055, 0.11 - 0.025 * dusk_warmth, clampf(darkness + weather_bonus, 0.0, 0.64))
+    night_overlay.color = overlay_color
 
 func _unhandled_input(event: InputEvent) -> void:
     if event.is_action_pressed("interact"):

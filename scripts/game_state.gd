@@ -15,7 +15,7 @@ var flags := {
 
 func save_game(player_pos: Vector2) -> void:
     var data := {
-        "version": "0.2.0",
+        "version": "0.2.7",
         "chapter": chapter,
         "quest": quest,
         "time_of_day": time_of_day,
