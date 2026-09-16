@@ -1,0 +1,3 @@
+[autoload]
+
+NightPursuit="*res://scripts/follow_quest_controller.gd"

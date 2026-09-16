@@ -1,0 +1,15 @@
+Black Records FINAL v0.5.5 - Complete Archive Verification
+
+Base archive: Black-records-mobile.zip
+Overlay: Black_Records_FINAL_v0.5.5_FULL_PC.zip
+
+Verification summary:
+- All original non-.git/.godot game files present: YES
+- v0.5.2 player/NPC motion patch present: YES
+- v0.5.3 minimap/UI/interior background assets present: YES
+- v0.5.4 interior controller/scene and NPC life updates present: YES
+- v0.5.5 weather/pursuit visibility update present: YES
+- Original .git history retained in this archive: YES
+- Original .godot generated cache retained in this archive: YES (Godot may regenerate it)
+
+Note: .godot is generated cache and is not required to run the project. It is included here only for full archival parity.

@@ -1,0 +1,18 @@
+Black Records FINAL v0.5.5 static validation
+
+[OK] project.godot
+[OK] main scene
+[OK] main.gd
+[OK] mobile_joystick.gd
+[OK] player.gd
+[OK] npc.gd
+[OK] weather_fx.gd
+[OK] interior_controller.gd
+[OK] follow_quest_controller.gd
+[OK] 3 interior backgrounds
+[OK] InteriorController autoload
+[OK] WeatherFX quest call
+
+Missing res:// references: 0
+
+Note: Godot executable is not installed in this sandbox, so runtime/F5 validation could not be executed here. Static resource-reference validation passed.
