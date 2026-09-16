@@ -1,19 +1,17 @@
 extends Node2D
 
-@onready var player: CharacterBody2D = $Player
-@onready var joystick: Control = $UI/Joystick
-@onready var interact_button: Button = $UI/InteractButton
-@onready var hint: Label = $UI/Hint
+@export var background: Texture2D
+@export var room_name: String = "실내"
+@export var exit_position: Vector2 = Vector2(640, 664)
+@export var exit_size: Vector2 = Vector2(220, 70)
 
 func _ready() -> void:
-    joystick.changed.connect(player.set_mobile_input)
-    interact_button.pressed.connect(try_exit)
+    queue_redraw()
 
-func _process(_delta: float) -> void:
-    var near_exit := player.position.distance_to(Vector2(640,650)) < 90.0
-    interact_button.modulate = Color.WHITE if near_exit else Color(0.55,0.55,0.55,0.7)
-    hint.text = "출입문 · 마을로 돌아가기" if near_exit else "경찰지소 · 실종 신고 기록을 조사할 수 있는 공간"
-
-func try_exit() -> void:
-    if player.position.distance_to(Vector2(640,650)) < 90.0:
-        get_tree().change_scene_to_file("res://scenes/main.tscn")
+func _draw() -> void:
+    if background != null:
+        draw_texture_rect(background, Rect2(0, 0, 1280, 720), false)
+    var exit_rect := Rect2(exit_position - exit_size * 0.5, exit_size)
+    draw_rect(exit_rect, Color(0.03, 0.04, 0.05, 0.34), true)
+    draw_rect(exit_rect, Color(0.86, 0.72, 0.43, 0.72), false, 2.0)
+    draw_string(ThemeDB.fallback_font, exit_position + Vector2(-38, 5), "나가기", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.96, 0.91, 0.78, 0.94))

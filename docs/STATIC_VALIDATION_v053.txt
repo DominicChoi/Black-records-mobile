@@ -1,0 +1,9 @@
+scripts/player.gd: OK (3420 bytes)
+scripts/npc.gd: OK (9249 bytes)
+scripts/minimap.gd: OK (6079 bytes)
+scenes/main.tscn: OK (4742 bytes)
+scripts/follow_quest_controller.gd: OK (6446 bytes)
+inn_v053.jpg: 1280x720
+police_station_v053.jpg: 1280x720
+village_hall_v053.jpg: 1280x720
+Quest controller unchanged: YES

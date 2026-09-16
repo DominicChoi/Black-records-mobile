@@ -1,0 +1,6 @@
+player.gd: preload refs=1, funcs=6
+player.gd: parentheses balanced=True
+npc.gd: preload refs=3, funcs=17
+npc.gd: parentheses balanced=True
+Scene files changed: NO
+Quest coordinate files changed: NO

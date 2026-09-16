@@ -1,0 +1,7 @@
+scripts/interior.gd: exists=True bytes=710 parens=True
+scripts/interior_controller.gd: exists=True bytes=5760 parens=True
+scripts/npc.gd: exists=True bytes=11061 parens=True
+scenes/interior_room.tscn: exists=True bytes=171 parens=True
+Interior backgrounds present=True
+Follow quest script unchanged=True
+World script unchanged=True

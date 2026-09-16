@@ -53,7 +53,7 @@ func update_environment(force_refresh: bool = false) -> void:
     if world.has_method("set_environment"):
         world.call("set_environment", float(state.time_of_day), str(state.weather))
     if weather_fx.has_method("set_environment"):
-        weather_fx.call("set_environment", float(state.time_of_day), str(state.weather))
+        weather_fx.call("set_environment", float(state.time_of_day), str(state.weather), str(state.quest))
 
 func _weather_for_hour(hour: float) -> String:
     if hour < 5.5:
