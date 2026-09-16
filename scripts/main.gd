@@ -19,6 +19,9 @@ var nearby_npc: CharacterBody2D
 var autosave_accum: float = 0.0
 var near_police: bool = false
 
+const POLICE_ENTRY_POS: Vector2 = Vector2(710.0, 855.0)
+const POLICE_ENTRY_RADIUS: float = 92.0
+
 func _ready() -> void:
     state = preload("res://scripts/game_state.gd").new()
     add_child(state)
@@ -43,7 +46,7 @@ func _process(delta: float) -> void:
     update_environment(false)
     update_npc_story_context()
     update_nearby_npc()
-    near_police = player.position.distance_to(Vector2(345.0, 355.0)) < 72.0
+    near_police = player.position.distance_to(POLICE_ENTRY_POS) < POLICE_ENTRY_RADIUS
     update_ui()
 
 func update_environment(force_refresh: bool = false) -> void:
@@ -96,8 +99,9 @@ func update_nearby_npc() -> void:
 
 func interact() -> void:
     if near_police and nearby_npc == null:
-        state.save_game(player.position)
-        get_tree().change_scene_to_file("res://scenes/police_station.tscn")
+        var interior_controller := get_node_or_null("/root/InteriorController")
+        if interior_controller != null and interior_controller.has_method("enter_from_main"):
+            interior_controller.call("enter_from_main", "police")
         return
     if nearby_npc != null:
         dialogue.text = nearby_npc.get_dialogue(float(state.time_of_day), str(state.quest), state.flags)
